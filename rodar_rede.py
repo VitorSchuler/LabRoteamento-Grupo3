@@ -38,7 +38,7 @@ def iniciar_roteadores():
         processos.append((nome, p))
         time.sleep(0.5) 
 
-    print("\n✅ Todos os 12 roteadores foram iniciados e estão convergindo!")
+    print("Todos os 12 roteadores foram iniciados e estão convergindo.")
     print("Pressione CTRL+C para desligar toda a rede.")
 
     try:

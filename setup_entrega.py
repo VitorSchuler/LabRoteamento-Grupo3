@@ -3,7 +3,6 @@ import os
 
 PASTA = 'grupo3'
 
-# Topologia Dual Ring do Grupo 3 (Formato Oficial de Entrega)
 roteadores = []
 for i in range(1, 13):
     roteadores.append({
@@ -16,7 +15,6 @@ for i in range(1, 13):
 with open(os.path.join(PASTA, 'topologia.json'), 'w') as f:
     json.dump(roteadores, f, indent=4)
 
-# Custos e ligações do Anel Duplo
 conexoes = {
     1: {2: 1, 6: 2, 7: 3}, 2: {1: 1, 3: 2}, 3: {2: 2, 4: 1},
     4: {3: 1, 5: 2, 10: 3}, 5: {4: 2, 6: 1}, 6: {5: 1, 1: 2},
@@ -30,4 +28,4 @@ for r_id, vizinhos in conexoes.items():
         for vizinho_id, custo in vizinhos.items():
             f.write(f"192.168.0.{vizinho_id}:5000,{custo}\n")
 
-print("✅ Arquivos de entrega gerados com sucesso na pasta 'grupo3'!")
+print("Arquivos de entrega gerados com sucesso na pasta 'grupo3'")
