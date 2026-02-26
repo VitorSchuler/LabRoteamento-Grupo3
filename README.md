@@ -1,5 +1,12 @@
 # Relatório Técnico: Implementação de Roteamento Vetor de Distâncias
 **Equipe:** Grupo 3
+Este projeto foi desenvolvido de forma colaborativa pelos seguintes alunos da disciplina:
+
+* **Vitor Schuler Velloso Borges** 
+* **Axel Vaz** 
+* **Gabriel Cabral**
+* **Francisco Julião** ```
+
 **Topologia Principal:** Dual Ring (12 Roteadores)
 
 ## Questão 1: Análise da Convergência Inicial (Topologia em Triângulo)
