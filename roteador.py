@@ -32,23 +32,16 @@ class Router:
         # FASE 1: INICIALIZAÇÃO DA TABELA DE ROTEAMENTO
         # =====================================================================
         
-        # 1. Cria a estrutura do dicionário
+      
         self.routing_table = {}
 
-        # 2. Adiciona a rota para a própria rede local (O custo é sempre 0)
-        # O 'next_hop' é a própria rede, pois os pacotes já chegaram ao destino final.
         self.routing_table[self.my_network] = {
             'cost': 0,
             'next_hop': self.my_network 
         }
 
-        # 3. Adiciona as rotas para os vizinhos diretos (lidos do CSV)
-        # O 'cost' é o custo do link direto e o 'next_hop' é o IP:Porta do vizinho.
-        # Nós usamos um destino fictício "vizinho_X" pois ainda não sabemos 
-        # qual rede interna (ex: 10.0.X.0/24) aquele vizinho gerencia.
-        # Mas sabemos o custo para jogar pacotes no cabo direto até ele.
+       
         for neighbor_ip_port, cost in self.neighbors.items():
-             # Aqui o destino inicial que conhecemos é a própria interface do vizinho
              self.routing_table[neighbor_ip_port] = {
                  'cost': cost,
                  'next_hop': neighbor_ip_port
@@ -59,7 +52,6 @@ class Router:
         print("Tabela de roteamento inicial:")
         print(json.dumps(self.routing_table, indent=4))
 
-        # Inicia o processo de atualização periódica em uma thread separada
         self._start_periodic_updates()
 
     def _start_periodic_updates(self):
@@ -95,10 +87,8 @@ class Router:
         groups = {}
         summarized = {}
         
-        # 1. Agrupar rotas pelo mesmo next_hop (Regra do roteiro)
         for net, info in table.items():
             if '/' not in net:
-                # IPs diretos (sem máscara /) não entram na brincadeira
                 summarized[net] = info.copy()
                 continue
                 
@@ -107,7 +97,6 @@ class Router:
                 groups[nh] = []
             groups[nh].append((net, info))
             
-        # 2. Tentar mesclar pares de redes iterativamente
         for nh, routes in groups.items():
             changed = True
             while changed:
@@ -124,27 +113,20 @@ class Router:
                         ip2_str, pref2_str = net2.split('/')
                         pref1, pref2 = int(pref1_str), int(pref2_str)
                         
-                        # Só sumariza se o tamanho das máscaras for igual (Ex: dois /24)
                         if pref1 == pref2:
                             ip1 = self.ip_to_int(ip1_str)
                             ip2 = self.ip_to_int(ip2_str)
                             
-                            # Magia dos bits: XOR para ver onde eles diferem
                             diff = ip1 ^ ip2
-                            target_bit = 1 << (32 - pref1) # O bit exato que separa as redes
+                            target_bit = 1 << (32 - pref1) 
                             
-                            # Se eles diferem exatamente no bit limite da rede...
                             if diff == target_bit:
                                 base_ip = min(ip1, ip2)
-                                # Verifica se a rede base está alinhada para a nova máscara (AND bit a bit)
                                 if (base_ip & target_bit) == 0:
-                                    # Sucesso! Podemos fundir (Ex: dois /24 viram um /23)
                                     new_pref = pref1 - 1
                                     new_net = f"{self.int_to_ip(base_ip)}/{new_pref}"
-                                    # Pega o custo do caminho mais demorado por segurança
                                     new_cost = max(info1['cost'], info2['cost']) 
                                     
-                                    # Remove as rotas velhas e adiciona a nova rota agregada
                                     routes.pop(j)
                                     routes.pop(i)
                                     routes.append((new_net, {'cost': new_cost, 'next_hop': nh}))
@@ -155,8 +137,7 @@ class Router:
                     if merged:
                         break
                     i += 1
-            
-            # Salva o resultado agregado na tabela final
+        
             for net, info in routes:
                 summarized[net] = info
                 
@@ -171,12 +152,10 @@ class Router:
             # =====================================================================
             table_for_neighbor = {}
             for net, info in self.routing_table.items():
-                # A Regra de Ouro: "Não conte para o seu vizinho a fofoca que 
-                # você aprendeu com ele mesmo!"
+              
                 if info['next_hop'] != neighbor_address:
                     table_for_neighbor[net] = info.copy()
             
-            # Chama a Fase 3 (Sumarização) na tabela filtrada
             summarized_table = self.summarize_table(table_for_neighbor)
             
             payload = {
@@ -188,11 +167,10 @@ class Router:
             try:
                 requests.post(url, json=payload, timeout=2)
             except requests.exceptions.RequestException:
-                # Silenciei o print de erro aqui para não poluir sua tela
-                # enquanto os outros roteadores ainda não foram ligados.
+            
                 pass
 # --- API Endpoints ---
-# Instância do Flask e do Roteador (serão inicializadas no main)
+
 app = Flask(__name__)
 router_instance = None
 
@@ -206,8 +184,8 @@ def get_routes():
             "my_network": router_instance.my_network,
             "my_address": router_instance.my_address,
             "update_interval": router_instance.update_interval,
-            "routing_table": router_instance.routing_table # Exibe a tabela de roteamento atual
-        }), 200 # Adicionado status code 200 de OK
+            "routing_table": router_instance.routing_table 
+        }), 200 
     return jsonify({"error": "Roteador não inicializado"}), 500
 
 @app.route('/receive_update', methods=['POST'])
@@ -227,25 +205,18 @@ def receive_update():
     # FASE 2: LÓGICA DE BELLMAN-FORD
     # =====================================================================
     
-    # 1. Verifica se quem mandou a mensagem é realmente nosso vizinho direto
     if sender_address not in router_instance.neighbors:
         return jsonify({"error": "Unknown neighbor"}), 403
         
-    # 2. Pega o custo do cabo direto até esse vizinho
     direct_cost = router_instance.neighbors[sender_address]
-    table_changed = False # Flag para saber se precisamos imprimir a tabela no final
+    table_changed = False 
 
-    # 3. Itera sobre cada rota que o vizinho nos enviou
     for network, info in sender_table.items():
-        # Ignora se o vizinho estiver anunciando a nossa própria rede local
         if network == router_instance.my_network:
             continue
             
-        # 4. Calcula o novo custo: Custo do link direto + Custo que o vizinho reportou
         new_cost = direct_cost + info['cost']
-        
-        # 5. Regras de Atualização da Tabela
-        # a. Se for uma rede nova que eu não conhecia, adiciono na hora!
+       
         if network not in router_instance.routing_table:
             router_instance.routing_table[network] = {
                 'cost': new_cost,
@@ -257,18 +228,13 @@ def receive_update():
             current_cost = router_instance.routing_table[network]['cost']
             current_next_hop = router_instance.routing_table[network]['next_hop']
             
-            # b. Se o caminho novo for MAIS BARATO, atualizamos a rota
             if new_cost < current_cost:
                 router_instance.routing_table[network] = {
                     'cost': new_cost,
                     'next_hop': sender_address
                 }
                 table_changed = True
-                
-            # c. REGRA DE OURO (Tratamento de Falhas):
-            # Se o meu melhor caminho atual JÁ É através desse vizinho, e ele manda
-            # um custo diferente (mesmo que seja maior), eu SOU OBRIGADO a atualizar.
-            # Isso significa que o caminho dele piorou e eu preciso saber!
+        
             elif current_next_hop == sender_address and new_cost != current_cost:
                 router_instance.routing_table[network] = {
                     'cost': new_cost,
@@ -276,7 +242,6 @@ def receive_update():
                 }
                 table_changed = True
 
-    # 6. Se a tabela mudou, imprime a nova versão no console para debug
     if table_changed:
         print(f"\n[!] Tabela atualizada com informações de {sender_address}:")
         print(json.dumps(router_instance.routing_table, indent=4))
@@ -286,26 +251,27 @@ def receive_update():
 if __name__ == '__main__':
     parser = ArgumentParser(description="Simulador de Roteador com Vetor de Distância")
     parser.add_argument('-p', '--port', type=int, default=5000, help="Porta para executar o roteador.")
+    parser.add_argument('--ip', type=str, default="127.0.0.1", help="Endereço IP deste roteador (ex: 192.168.0.1).")
     parser.add_argument('-f', '--file', type=str, required=True, help="Arquivo CSV de configuração de vizinhos.")
     parser.add_argument('--network', type=str, required=True, help="Rede administrada por este roteador (ex: 10.0.1.0/24).")
     parser.add_argument('--interval', type=int, default=10, help="Intervalo de atualização periódica em segundos.")
     args = parser.parse_args()
 
-    # Leitura do arquivo de configuração de vizinhos
     neighbors_config = {}
     try:
         with open(args.file, mode='r') as infile:
             reader = csv.DictReader(infile)
             for row in reader:
-                neighbors_config[row['vizinho']] = int(row['custo'])
+                neighbors_config[row['neighbor_address']] = int(row['cost'])
     except FileNotFoundError:
         print(f"Erro: Arquivo de configuração '{args.file}' não encontrado.")
         exit(1)
     except (KeyError, ValueError) as e:
-        print(f"Erro no formato do arquivo CSV: {e}. Verifique as colunas 'vizinho' e 'custo'.")
+        print(f"Erro no formato do arquivo CSV: {e}. Verifique as colunas 'neighbor_address' e 'cost'.")
         exit(1)
 
-    my_full_address = f"127.0.0.1:{args.port}"
+    my_full_address = f"{args.ip}:{args.port}"
+    
     print("--- Iniciando Roteador ---")
     print(f"Endereço: {my_full_address}")
     print(f"Rede Local: {args.network}")
