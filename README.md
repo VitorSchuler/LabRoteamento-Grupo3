@@ -60,27 +60,25 @@ Para o cenário principal exigido, desenvolvemos a topologia em "Anel Duplo" (pe
 **Diagrama da Arquitetura:**
 
 
-**Análise de Convergência (Tabela de Roteamento Global):**
-Para validar a precisão do algoritmo de Bellman-Ford implementado, realizamos o teste de mesa mapeando os caminhos ótimos a partir da perspectiva do **Roteador 1 (R1)** para todas as outras 11 redes da topologia, após a rede alcançar o estado de convergência total.
+Análise de Convergência (Tabela de Roteamento Global):
+Para validar a precisão do algoritmo de Bellman-Ford implementado, realizamos o teste de mesa mapeando os caminhos ótimos a partir da perspectiva do Roteador 1 (R1) para todas as outras 11 redes da topologia, após a rede alcançar o estado de convergência total.
 
-O Roteador 1 possui conexões diretas com R2 (custo 1), R6 (custo 2) e R7 (custo 3). A tabela abaixo demonstra a métrica final calculada e o próximo salto (Next-Hop) escolhido por R1 para alcançar cada destino com o menor custo possível:
+O Roteador 1 possui conexões diretas com R2 (custo 1), R6 (custo 2) e R7 (custo 3). Devido à execução em ambiente local, as portas foram mapeadas sequencialmente de 5001 a 5012. A tabela abaixo demonstra a métrica final calculada e o próximo salto (Next-Hop) escolhido por R1 para alcançar cada destino com o menor custo possível:
 
-| Rede de Destino | Next-Hop (Próximo Salto) | Custo Total Acumulado | Caminho Lógico do Algoritmo |
-| :--- | :--- | :--- | :--- |
-| **R2** (10.0.2.0/24) | R2 (192.168.0.2:5000) | 1 | R1 → R2 |
-| **R3** (10.0.3.0/24) | R2 (192.168.0.2:5000) | 3 | R1 → R2 → R3 |
-| **R4** (10.0.4.0/24) | R2 (192.168.0.2:5000) | 4 | R1 → R2 → R3 → R4 |
-| **R5** (10.0.5.0/24) | R6 (192.168.0.6:5000) | 3 | R1 → R6 → R5 |
-| **R6** (10.0.6.0/24) | R6 (192.168.0.6:5000) | 2 | R1 → R6 |
-| **R7** (10.0.7.0/24) | R7 (192.168.0.7:5000) | 3 | R1 → R7 (Link redundante) |
-| **R8** (10.0.8.0/24) | R7 (192.168.0.7:5000) | 4 | R1 → R7 → R8 |
-| **R9** (10.0.9.0/24) | R7 (192.168.0.7:5000) | 6 | R1 → R7 → R8 → R9 |
-| **R10** (10.0.10.0/24) | R7 (192.168.0.7:5000) | 7 | R1 → R7 → R8 → R9 → R10 |
-| **R11** (10.0.11.0/24) | R7 (192.168.0.7:5000) | 6 | R1 → R7 → R12 → R11 |
-| **R12** (10.0.12.0/24) | R7 (192.168.0.7:5000) | 5 | R1 → R7 → R12 |
+Rede de Destino	Next-Hop (Próximo Salto)	Custo Total Acumulado	Caminho Lógico do Algoritmo
+**R2** (10.0.2.0/24)	R2 (192.168.0.2:5002)	1	R1 → R2
+**R3** (10.0.3.0/24)	R2 (192.168.0.2:5002)	3	R1 → R2 → R3
+**R4** (10.0.4.0/24)	R2 (192.168.0.2:5002)	4	R1 → R2 → R3 → R4
+**R5** (10.0.5.0/24)	R6 (192.168.0.6:5006)	3	R1 → R6 → R5
+**R6** (10.0.6.0/24)	R6 (192.168.0.6:5006)	2	R1 → R6
+**R7** (10.0.7.0/24)	R7 (192.168.0.7:5007)	3	R1 → R7 (Link redundante)
+**R8** (10.0.8.0/24)	R7 (192.168.0.7:5007)	4	R1 → R7 → R8
+**R9** (10.0.9.0/24)	R7 (192.168.0.7:5007)	6	R1 → R7 → R8 → R9
+**R10** (10.0.10.0/24)	R7 (192.168.0.7:5007)	7	R1 → R7 → R8 → R9 → R10
+**R11** (10.0.11.0/24)	R7 (192.168.0.7:5007)	6	R1 → R7 → R12 → R11
+**R12** (10.0.12.0/24)	R7 (192.168.0.7:5007)	5	R1 → R7 → R12
 
-*Nota: O tráfego de R1 para a rede de R10 ilustra perfeitamente a eficiência matemática do protocolo. Em vez de usar apenas o seu próprio anel, o algoritmo descobre e utiliza a ponte de redundância (R7), provando que a topologia Dual Ring funciona como um ecossistema único de roteamento.*
-
+Nota: A utilização de portas distintas (5001-5012) permitiu a emulação fidedigna de processos independentes em uma mesma interface física. O tráfego de R1 para a rede de R10 ilustra a eficiência matemática do protocolo: o algoritmo descobre e utiliza a ponte de redundância (R7), provando que a topologia Dual Ring funciona como um ecossistema único de roteamento através da minimização de custos.
 
 # 🌐 Simulador de Roteamento: Vetor de Distâncias (Bellman-Ford)
 
