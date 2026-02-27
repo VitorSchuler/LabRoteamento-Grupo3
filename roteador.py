@@ -167,8 +167,17 @@ class Router:
             try:
                 requests.post(url, json=payload, timeout=2)
             except requests.exceptions.RequestException:
-            
-                pass
+                # ALERTA DE QUEDA: O vizinho não respondeu!
+                # Vamos definir o custo para o infinito (16) para as rotas que dependem dele.
+                table_changed = False
+                for net, info in list(self.routing_table.items()):
+                    if info['next_hop'] == neighbor_address and info['cost'] < 16:
+                        self.routing_table[net]['cost'] = 16
+                        table_changed = True
+                
+                if table_changed:
+                    print(f"\n[!] ALERTA: Link com {neighbor_address} caiu! Rotas ajustadas para o infinito (16).")
+                    print(json.dumps(self.routing_table, indent=4))
 # --- API Endpoints ---
 
 app = Flask(__name__)
@@ -205,10 +214,13 @@ def receive_update():
     # FASE 2: LÓGICA DE BELLMAN-FORD
     # =====================================================================
     
-    if sender_address not in router_instance.neighbors:
-        return jsonify({"error": "Unknown neighbor"}), 403
+    sender_ip = sender_address.split(':')[0]
+    matched_address = next((addr for addr in router_instance.neighbors if addr.startswith(sender_ip)), None)
+
+    #if not matched_address:
+    #    return jsonify({"error": f"Unknown neighbor IP: {sender_ip}"}), 403
         
-    direct_cost = router_instance.neighbors[sender_address]
+    direct_cost = router_instance.neighbors[matched_address]
     table_changed = False 
 
     for network, info in sender_table.items():

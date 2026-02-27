@@ -4,6 +4,7 @@ import time
 import os
 import sys
 
+# Ajuste os caminhos abaixo conforme a sua pasta
 TOPOLOGIA_FILE = 'grupo3/topologia.json'
 PASTA_CENARIO = 'grupo3/'
 
@@ -16,15 +17,18 @@ def iniciar_roteadores():
         sys.exit(1)
 
     processos = []
-    print("Iniciando a rede Dual Ring do Grupo 3...\n")
+    print("Iniciando a rede de 12 roteadores (Portas 5001-5012)...\n")
 
-    for r in roteadores:
-        porta = r['address'].split(':')[1]
+    # O loop corrigido com a variável 'roteadores' definida
+    for i, r in enumerate(roteadores, start=1):
+        # Forçamos a porta sequencial para evitar o erro de porta ocupada
+        porta = str(5000 + i)
         
         config_file = os.path.join(PASTA_CENARIO, r['config_file'])
         network = r['network']
         nome = r['name']
-
+        
+        # Comando para rodar o roteador
         comando = [
             sys.executable, 'roteador.py', 
             '-p', porta, 
@@ -34,21 +38,27 @@ def iniciar_roteadores():
 
         print(f"Iniciando {nome} na porta {porta} (Rede: {network})...")
         
-        p = subprocess.Popen(comando, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        processos.append((nome, p))
+        # Abrimos um arquivo de log para cada roteador (r1.log, r2.log...)
+        log_file = open(f"{nome.lower()}.log", "w")
+        p = subprocess.Popen(comando, stdout=log_file, stderr=log_file)
+        
+        # Guardamos o processo e o arquivo de log para fechar depois
+        processos.append((nome, p, log_file))
         time.sleep(0.5) 
 
-    print("Todos os 12 roteadores foram iniciados e estão convergindo.")
+    print("\nTodos os 12 roteadores estão rodando em background.")
+    print("Acompanhe o R1 com: tail -f r1.log")
     print("Pressione CTRL+C para desligar toda a rede.")
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\nDesligando a rede. Matando os processos...")
-        for nome, p in processos:
+        print("\nFinalizando processos...")
+        for nome, p, log in processos:
             p.terminate()
-        print("Rede desligada com sucesso.")
+            log.close()
+        print("Rede desligada.")
 
 if __name__ == '__main__':
     iniciar_roteadores()
